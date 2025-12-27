@@ -1,1 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payment History - Premium Hosting</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="logo">
+                <i class="fas fa-server"></i>
+                <span>Payment History</span>
+            </div>
+            <div class="nav-links">
+                <a href="/dashboard.html"><i class="fas fa-arrow-left"></i> Back to Dashboard</a>
+            </div>
+        </div>
+    </nav>
 
+    <div class="dashboard-container">
+        <h1><i class="fas fa-history"></i> Payment History</h1>
+        <p>View all your past payments and transactions</p>
+        
+        <div class="table-container">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Plan</th>
+                        <th>Amount</th>
+                        <th>Status</th>
+                        <th>Transaction ID</th>
+                        <th>Invoice</th>
+                    </tr>
+                </thead>
+                <tbody id="paymentHistoryBody">
+                    <tr>
+                        <td colspan="6" style="text-align: center; padding: 3rem;">
+                            <i class="fas fa-receipt" style="font-size: 3rem; color: #cbd5e0;"></i>
+                            <p style="margin-top: 1rem; color: #718096;">No payment history found</p>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        
+        <div class="auth-links" style="margin-top: 2rem;">
+            <a href="/dashboard.html"><i class="fas fa-arrow-left"></i> Back to Dashboard</a>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            loadPaymentHistory();
+        });
+
+        async function loadPaymentHistory() {
+            try {
+                // This would fetch from /api/user/payments in a real implementation
+                const response = await fetch('/api/user');
+                const data = await response.json();
+                
+                if (data.success) {
+                    // For now, we'll show a sample payment
+                    // In production, you would fetch actual payment history
+                    const tbody = document.getElementById('paymentHistoryBody');
+                    tbody.innerHTML = `
+                        <tr>
+                            <td>${new Date().toLocaleDateString()}</td>
+                            <td>${data.user.plan.charAt(0).toUpperCase() + data.user.plan.slice(1)} Plan</td>
+                            <td>₹${data.user.plan === 'basic' ? 99 : data.user.plan === 'premium' ? 999 : 0}</td>
+                            <td><span class="status-badge completed">Active</span></td>
+                            <td>UPI_${Date.now().toString().slice(-8)}</td>
+                            <td><button class="btn-small"><i class="fas fa-download"></i> Download</button></td>
+                        </tr>
+                    `;
+                }
+            } catch (error) {
+                console.error('Error loading payment history:', error);
+            }
+        }
+    </script>
+
+    <style>
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+        
+        .data-table th, .data-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        
+        .data-table th {
+            background: #f7fafc;
+            font-weight: 600;
+            color: #4a5568;
+        }
+        
+        .status-badge {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+        
+        .status-badge.completed {
+            background: #c6f6d5;
+            color: #22543d;
+        }
+        
+        .btn-small {
+            padding: 5px 10px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+    </style>
+</body>
+</html>
