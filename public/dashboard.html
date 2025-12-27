@@ -1,1 +1,790 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Dashboard - Premium Hosting</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="logo">
+                <i class="fas fa-server"></i>
+                <span>My Dashboard</span>
+            </div>
+            <div class="nav-links">
+                <a href="/dashboard.html"><i class="fas fa-tachometer-alt"></i> Dashboard</a>
+                <a href="#files"><i class="fas fa-file-upload"></i> Upload Files</a>
+                <a href="#plans"><i class="fas fa-crown"></i> Upgrade Plan</a>
+                <a href="#profile"><i class="fas fa-user"></i> Profile</a>
+                <button id="logoutBtn" class="btn-login"><i class="fas fa-sign-out-alt"></i> Logout</button>
+            </div>
+        </div>
+    </nav>
 
+    <div class="dashboard-container">
+        <!-- Welcome Section -->
+        <div class="welcome-section">
+            <h1>Welcome, <span id="userName">User</span>!</h1>
+            <p>Your current plan: <strong id="userPlan">Free Plan</strong></p>
+        </div>
+
+        <!-- Stats Cards -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-value" id="storageUsed">0 MB</div>
+                <div class="stat-label">Storage Used</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="storageLeft">100 MB</div>
+                <div class="stat-label">Storage Left</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="filesCount">0</div>
+                <div class="stat-label">Files Uploaded</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="planExpiry">30 days</div>
+                <div class="stat-label">Plan Expires In</div>
+            </div>
+        </div>
+
+        <!-- Storage Progress Bar -->
+        <div class="storage-progress">
+            <div class="progress-header">
+                <h3>Storage Usage</h3>
+                <span id="storagePercentage">0%</span>
+            </div>
+            <div class="progress-bar">
+                <div id="progressFill" class="progress-fill" style="width: 0%"></div>
+            </div>
+            <div class="progress-labels">
+                <span>0 MB</span>
+                <span id="storageLimitLabel">100 MB</span>
+            </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="quick-actions">
+            <h2>Quick Actions</h2>
+            <div class="action-buttons">
+                <button onclick="showUploadModal()" class="action-btn">
+                    <i class="fas fa-upload"></i>
+                    <span>Upload File</span>
+                </button>
+                <button onclick="showUpgradeModal()" class="action-btn">
+                    <i class="fas fa-crown"></i>
+                    <span>Upgrade Plan</span>
+                </button>
+                <button onclick="showFiles()" class="action-btn">
+                    <i class="fas fa-folder"></i>
+                    <span>My Files</span>
+                </button>
+                <a href="/payment-history.html" class="action-btn">
+                    <i class="fas fa-history"></i>
+                    <span>Payment History</span>
+                </a>
+            </div>
+        </div>
+
+        <!-- Uploaded Files Section -->
+        <div class="files-section">
+            <h2>Recent Files</h2>
+            <div id="filesList" class="files-list">
+                <!-- Files will be loaded here -->
+                <div class="empty-state">
+                    <i class="fas fa-folder-open"></i>
+                    <p>No files uploaded yet</p>
+                    <button onclick="showUploadModal()" class="btn-primary">Upload Your First File</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Current Plan Info -->
+        <div class="plan-info">
+            <h2>Current Plan Details</h2>
+            <div class="plan-details">
+                <div class="plan-detail">
+                    <i class="fas fa-hdd"></i>
+                    <div>
+                        <h4>Storage</h4>
+                        <p id="planStorage">100 MB</p>
+                    </div>
+                </div>
+                <div class="plan-detail">
+                    <i class="fas fa-calendar"></i>
+                    <div>
+                        <h4>Expiry Date</h4>
+                        <p id="planExpiryDate">Loading...</p>
+                    </div>
+                </div>
+                <div class="plan-detail">
+                    <i class="fas fa-bolt"></i>
+                    <div>
+                        <h4>Status</h4>
+                        <p id="planStatus">Active</p>
+                    </div>
+                </div>
+                <div class="plan-detail">
+                    <i class="fas fa-rupee-sign"></i>
+                    <div>
+                        <h4>Next Payment</h4>
+                        <p id="nextPayment">₹0</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Upload Modal -->
+    <div id="uploadModal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal">&times;</span>
+            <h2>Upload File</h2>
+            <form id="uploadForm">
+                <div class="upload-area" id="dropArea">
+                    <i class="fas fa-cloud-upload-alt"></i>
+                    <p>Drag & drop files here or click to browse</p>
+                    <input type="file" id="fileInput" hidden>
+                    <button type="button" onclick="document.getElementById('fileInput').click()" class="btn-secondary">
+                        Browse Files
+                    </button>
+                </div>
+                <div id="fileInfo" style="display: none; margin-top: 20px;">
+                    <p>Selected file: <span id="fileName"></span> (<span id="fileSize"></span>)</p>
+                </div>
+                <button type="submit" id="uploadBtn" disabled class="btn-primary" style="margin-top: 20px;">
+                    <i class="fas fa-upload"></i> Upload File
+                </button>
+                <div id="uploadProgress" style="display: none; margin-top: 20px;">
+                    <div class="progress-bar">
+                        <div id="uploadProgressFill" class="progress-fill" style="width: 0%"></div>
+                    </div>
+                    <p id="uploadStatus">Uploading...</p>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Upgrade Modal -->
+    <div id="upgradeModal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal">&times;</span>
+            <h2>Upgrade Your Plan</h2>
+            <div class="upgrade-plans">
+                <div class="upgrade-plan">
+                    <h3>Basic Plan</h3>
+                    <div class="price">₹99<span>/month</span></div>
+                    <ul>
+                        <li><i class="fas fa-check"></i> 1 GB Storage</li>
+                        <li><i class="fas fa-check"></i> Priority Support</li>
+                        <li><i class="fas fa-check"></i> 24/7 Uptime</li>
+                    </ul>
+                    <button onclick="initiatePayment('basic')" class="btn-primary">Upgrade to Basic</button>
+                </div>
+                <div class="upgrade-plan popular">
+                    <div class="popular-badge">Most Popular</div>
+                    <h3>Premium Plan</h3>
+                    <div class="price">₹999<span>/month</span></div>
+                    <ul>
+                        <li><i class="fas fa-check"></i> 10 GB Storage</li>
+                        <li><i class="fas fa-check"></i> 24/7 Priority Support</li>
+                        <li><i class="fas fa-check"></i> Maximum Uptime</li>
+                        <li><i class="fas fa-check"></i> Advanced Features</li>
+                    </ul>
+                    <button onclick="initiatePayment('premium')" class="btn-primary">Upgrade to Premium</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Payment Modal -->
+    <div id="paymentModal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal">&times;</span>
+            <h2>Complete Payment</h2>
+            <div id="paymentDetails">
+                <!-- Payment details will be loaded here -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Dashboard JavaScript
+        document.addEventListener('DOMContentLoaded', function() {
+            checkAuth();
+            loadUserData();
+            setupEventListeners();
+            
+            // Check for payment success
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('payment') === 'success') {
+                alert('Payment successful! Your plan has been upgraded.');
+                window.history.replaceState({}, document.title, window.location.pathname);
+            }
+        });
+
+        async function checkAuth() {
+            try {
+                const response = await fetch('/api/user');
+                const data = await response.json();
+                
+                if (!data.success) {
+                    window.location.href = '/login.html';
+                } else {
+                    // Check if admin, redirect to admin panel
+                    if (data.user.username === 'thedigamber') {
+                        window.location.href = '/admin.html';
+                    }
+                }
+            } catch (error) {
+                window.location.href = '/login.html';
+            }
+        }
+
+        async function loadUserData() {
+            try {
+                const response = await fetch('/api/user');
+                const data = await response.json();
+                
+                if (data.success) {
+                    const user = data.user;
+                    
+                    // Update user info
+                    document.getElementById('userName').textContent = user.username;
+                    document.getElementById('userPlan').textContent = 
+                        user.plan.charAt(0).toUpperCase() + user.plan.slice(1) + ' Plan';
+                    
+                    // Update storage info
+                    const usedMB = user.storageUsed || 0;
+                    const limitMB = user.storageLimit || 100;
+                    const percentage = Math.min((usedMB / limitMB) * 100, 100);
+                    
+                    document.getElementById('storageUsed').textContent = usedMB.toFixed(2) + ' MB';
+                    document.getElementById('storageLeft').textContent = (limitMB - usedMB).toFixed(2) + ' MB';
+                    document.getElementById('storagePercentage').textContent = percentage.toFixed(1) + '%';
+                    document.getElementById('progressFill').style.width = percentage + '%';
+                    document.getElementById('storageLimitLabel').textContent = limitMB + ' MB';
+                    
+                    // Update plan info
+                    document.getElementById('planStorage').textContent = limitMB + ' MB';
+                    
+                    // Calculate days until expiry
+                    const expiryDate = new Date(user.planExpiry);
+                    const today = new Date();
+                    const daysLeft = Math.ceil((expiryDate - today) / (1000 * 60 * 60 * 24));
+                    
+                    document.getElementById('planExpiry').textContent = daysLeft + ' days';
+                    document.getElementById('planExpiryDate').textContent = expiryDate.toLocaleDateString();
+                    document.getElementById('planStatus').textContent = daysLeft > 0 ? 'Active' : 'Expired';
+                    
+                    // Set next payment amount
+                    const nextPayment = user.plan === 'basic' ? 99 : user.plan === 'premium' ? 999 : 0;
+                    document.getElementById('nextPayment').textContent = '₹' + nextPayment;
+                }
+            } catch (error) {
+                console.error('Error loading user data:', error);
+            }
+        }
+
+        function setupEventListeners() {
+            // Logout button
+            document.getElementById('logoutBtn').addEventListener('click', function() {
+                fetch('/api/logout')
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            window.location.href = '/login.html';
+                        }
+                    });
+            });
+            
+            // File upload
+            const fileInput = document.getElementById('fileInput');
+            const dropArea = document.getElementById('dropArea');
+            
+            fileInput.addEventListener('change', handleFileSelect);
+            
+            // Drag and drop
+            dropArea.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                dropArea.style.backgroundColor = '#f0f4ff';
+            });
+            
+            dropArea.addEventListener('dragleave', () => {
+                dropArea.style.backgroundColor = '';
+            });
+            
+            dropArea.addEventListener('drop', (e) => {
+                e.preventDefault();
+                dropArea.style.backgroundColor = '';
+                
+                if (e.dataTransfer.files.length) {
+                    fileInput.files = e.dataTransfer.files;
+                    handleFileSelect({ target: fileInput });
+                }
+            });
+            
+            // Upload form
+            document.getElementById('uploadForm').addEventListener('submit', handleUpload);
+            
+            // Modal close buttons
+            document.querySelectorAll('.close-modal').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    this.closest('.modal').style.display = 'none';
+                });
+            });
+            
+            // Close modal when clicking outside
+            window.addEventListener('click', function(event) {
+                if (event.target.classList.contains('modal')) {
+                    event.target.style.display = 'none';
+                }
+            });
+        }
+
+        function handleFileSelect(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            
+            document.getElementById('fileName').textContent = file.name;
+            document.getElementById('fileSize').textContent = formatFileSize(file.size);
+            document.getElementById('fileInfo').style.display = 'block';
+            document.getElementById('uploadBtn').disabled = false;
+        }
+
+        async function handleUpload(e) {
+            e.preventDefault();
+            
+            const fileInput = document.getElementById('fileInput');
+            const file = fileInput.files[0];
+            
+            if (!file) return;
+            
+            const uploadBtn = document.getElementById('uploadBtn');
+            const uploadProgress = document.getElementById('uploadProgress');
+            const uploadStatus = document.getElementById('uploadStatus');
+            const uploadProgressFill = document.getElementById('uploadProgressFill');
+            
+            uploadBtn.disabled = true;
+            uploadProgress.style.display = 'block';
+            uploadStatus.textContent = 'Uploading...';
+            
+            // Simulate upload progress
+            let progress = 0;
+            const interval = setInterval(() => {
+                progress += 10;
+                uploadProgressFill.style.width = progress + '%';
+                
+                if (progress >= 90) {
+                    clearInterval(interval);
+                }
+            }, 200);
+            
+            try {
+                // In a real implementation, you would upload the file to server
+                // For now, we'll simulate with a POST request
+                const formData = new FormData();
+                formData.append('file', file);
+                
+                const response = await fetch('/api/upload', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        filename: file.name,
+                        size: file.size
+                    }),
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                clearInterval(interval);
+                uploadProgressFill.style.width = '100%';
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    uploadStatus.textContent = 'Upload successful!';
+                    uploadStatus.style.color = '#48bb78';
+                    
+                    setTimeout(() => {
+                        document.getElementById('uploadModal').style.display = 'none';
+                        uploadProgress.style.display = 'none';
+                        uploadProgressFill.style.width = '0%';
+                        fileInput.value = '';
+                        document.getElementById('fileInfo').style.display = 'none';
+                        uploadBtn.disabled = false;
+                        
+                        // Reload user data to update storage
+                        loadUserData();
+                    }, 1000);
+                } else {
+                    uploadStatus.textContent = 'Upload failed: ' + (data.error || 'Unknown error');
+                    uploadStatus.style.color = '#f56565';
+                    uploadBtn.disabled = false;
+                }
+            } catch (error) {
+                clearInterval(interval);
+                uploadStatus.textContent = 'Upload failed: ' + error.message;
+                uploadStatus.style.color = '#f56565';
+                uploadBtn.disabled = false;
+            }
+        }
+
+        function showUploadModal() {
+            document.getElementById('uploadModal').style.display = 'block';
+        }
+
+        function showUpgradeModal() {
+            document.getElementById('upgradeModal').style.display = 'block';
+        }
+
+        async function initiatePayment(plan) {
+            try {
+                const response = await fetch('/api/payment/initiate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ plan })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showPaymentModal(data);
+                } else {
+                    alert('Failed to initiate payment: ' + data.error);
+                }
+            } catch (error) {
+                console.error('Payment initiation error:', error);
+                alert('Failed to initiate payment');
+            }
+        }
+
+        function showPaymentModal(paymentData) {
+            const modal = document.getElementById('paymentModal');
+            const content = document.getElementById('paymentDetails');
+            
+            content.innerHTML = `
+                <div class="payment-info">
+                    <h3>Payment for ${paymentData.plan} Plan</h3>
+                    <p>Amount: <strong>₹${paymentData.amount}</strong></p>
+                    <p>UPI ID: <strong>${paymentData.upiId}</strong></p>
+                    
+                    <div class="qr-container">
+                        <h4>Scan QR Code to Pay</h4>
+                        <div id="qrCode"></div>
+                        <p>Or use UPI ID: ${paymentData.upiId}</p>
+                    </div>
+                    
+                    <div class="payment-instructions">
+                        <h4>Payment Instructions:</h4>
+                        <ol>
+                            <li>Open your UPI app (GPay, PhonePe, Paytm, etc.)</li>
+                            <li>Scan the QR code or enter UPI ID manually</li>
+                            <li>Pay ₹${paymentData.amount}</li>
+                            <li>Enter Transaction ID below after payment</li>
+                        </ol>
+                    </div>
+                    
+                    <div class="transaction-form">
+                        <input type="text" id="transactionId" placeholder="Enter UPI Transaction ID">
+                        <button onclick="verifyPayment('${paymentData.paymentId}')" class="btn-primary">
+                            Verify Payment
+                        </button>
+                        <p style="font-size: 0.9rem; color: #718096; margin-top: 10px;">
+                            Note: Your plan will be activated immediately after verification
+                        </p>
+                    </div>
+                </div>
+            `;
+            
+            // Generate QR code (using a library in production)
+            generateQRCode(paymentData.qrData);
+            
+            modal.style.display = 'block';
+            document.getElementById('upgradeModal').style.display = 'none';
+        }
+
+        function generateQRCode(data) {
+            // Simple QR code generation (in production use a library like qrcode.js)
+            const qrContainer = document.getElementById('qrCode');
+            qrContainer.innerHTML = `
+                <div style="width: 200px; height: 200px; background: #f7fafc; 
+                     display: flex; align-items: center; justify-content: center;
+                     border: 2px dashed #cbd5e0; margin: 0 auto 10px;">
+                    <div style="text-align: center;">
+                        <i class="fas fa-qrcode" style="font-size: 80px; color: #667eea;"></i>
+                        <p style="margin-top: 10px; color: #718096;">QR Code Placeholder</p>
+                    </div>
+                </div>
+            `;
+        }
+
+        async function verifyPayment(paymentId) {
+            const transactionId = document.getElementById('transactionId').value.trim();
+            
+            if (!transactionId) {
+                alert('Please enter transaction ID');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/payment/verify', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        paymentId,
+                        transactionId
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert('Payment verified successfully! Your plan has been upgraded.');
+                    document.getElementById('paymentModal').style.display = 'none';
+                    loadUserData(); // Refresh dashboard
+                } else {
+                    alert('Payment verification failed: ' + data.error);
+                }
+            } catch (error) {
+                console.error('Payment verification error:', error);
+                alert('Payment verification failed');
+            }
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+    </script>
+
+    <style>
+        /* Dashboard Specific Styles */
+        .welcome-section {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 2rem;
+            border-radius: 10px;
+            margin-bottom: 2rem;
+        }
+        
+        .storage-progress {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin: 2rem 0;
+        }
+        
+        .progress-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+        
+        .progress-bar {
+            height: 10px;
+            background: #e2e8f0;
+            border-radius: 5px;
+            overflow: hidden;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            transition: width 0.3s ease;
+        }
+        
+        .progress-labels {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 0.5rem;
+            color: #718096;
+            font-size: 0.9rem;
+        }
+        
+        .quick-actions {
+            margin: 2rem 0;
+        }
+        
+        .action-buttons {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+        
+        .action-btn {
+            background: white;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .action-btn:hover {
+            border-color: #667eea;
+            transform: translateY(-3px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+        }
+        
+        .action-btn i {
+            font-size: 2rem;
+            color: #667eea;
+        }
+        
+        .files-section {
+            background: white;
+            padding: 2rem;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin: 2rem 0;
+        }
+        
+        .files-list {
+            min-height: 200px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .empty-state {
+            text-align: center;
+            color: #718096;
+        }
+        
+        .empty-state i {
+            font-size: 3rem;
+            color: #cbd5e0;
+            margin-bottom: 1rem;
+        }
+        
+        .plan-info {
+            background: white;
+            padding: 2rem;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        .plan-details {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 2rem;
+            margin-top: 1.5rem;
+        }
+        
+        .plan-detail {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        
+        .plan-detail i {
+            font-size: 2rem;
+            color: #667eea;
+        }
+        
+        .upload-area {
+            border: 2px dashed #cbd5e0;
+            border-radius: 10px;
+            padding: 3rem;
+            text-align: center;
+            cursor: pointer;
+            transition: border-color 0.3s;
+        }
+        
+        .upload-area:hover {
+            border-color: #667eea;
+        }
+        
+        .upload-area i {
+            font-size: 3rem;
+            color: #cbd5e0;
+            margin-bottom: 1rem;
+        }
+        
+        .upgrade-plans {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin-top: 2rem;
+        }
+        
+        .upgrade-plan {
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 2rem;
+            position: relative;
+        }
+        
+        .upgrade-plan.popular {
+            border-color: #667eea;
+        }
+        
+        .popular-badge {
+            position: absolute;
+            top: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #667eea;
+            color: white;
+            padding: 5px 15px;
+            border-radius: 15px;
+            font-size: 0.9rem;
+        }
+        
+        .payment-info {
+            text-align: center;
+        }
+        
+        .qr-container {
+            margin: 2rem 0;
+            padding: 1rem;
+            background: #f7fafc;
+            border-radius: 10px;
+        }
+        
+        .payment-instructions {
+            text-align: left;
+            margin: 2rem 0;
+            padding: 1rem;
+            background: #f7fafc;
+            border-radius: 10px;
+        }
+        
+        .payment-instructions ol {
+            margin-left: 1.5rem;
+        }
+        
+        .transaction-form {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            margin-top: 2rem;
+        }
+        
+        .transaction-form input {
+            padding: 10px;
+            border: 2px solid #e2e8f0;
+            border-radius: 5px;
+            font-size: 1rem;
+        }
+    </style>
+</body>
+</html>
