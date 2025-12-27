@@ -1,1 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Premium Hosting - 24/7 Uptime</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="logo">
+                <i class="fas fa-server"></i>
+                <span>PremiumHost</span>
+            </div>
+            <div class="nav-links">
+                <a href="#home">Home</a>
+                <a href="#plans">Plans</a>
+                <a href="#features">Features</a>
+                <a href="#contact">Contact</a>
+                <a href="/login.html" class="btn-login">Login</a>
+                <a href="/register.html" class="btn-register">Sign Up</a>
+            </div>
+        </div>
+    </nav>
 
+    <!-- Hero Section -->
+    <section id="home" class="hero">
+        <div class="hero-content">
+            <h1>Premium 24/7 Hosting <span class="highlight">For Coders</span></h1>
+            <p>Host your code, projects, and files with 99.9% uptime. Lightning fast, secure, and reliable hosting solutions.</p>
+            <div class="hero-buttons">
+                <a href="#plans" class="btn-primary">View Plans</a>
+                <a href="/register.html" class="btn-secondary">Get Started Free</a>
+            </div>
+        </div>
+        <div class="hero-image">
+            <img src="https://images.unsplash.com/photo-1558494949-ef010cbdcc31?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80" alt="Hosting Server">
+        </div>
+    </section>
+
+    <!-- Plans Section -->
+    <section id="plans" class="plans-section">
+        <h2>Choose Your Hosting Plan</h2>
+        <p>Select the perfect plan for your needs. All plans include 24/7 uptime guarantee.</p>
+        
+        <div class="plans-container">
+            <!-- Free Plan -->
+            <div class="plan-card">
+                <div class="plan-header">
+                    <h3>Free Plan</h3>
+                    <div class="price">₹0<span>/month</span></div>
+                </div>
+                <div class="plan-features">
+                    <ul>
+                        <li><i class="fas fa-check-circle"></i> 100 MB Storage</li>
+                        <li><i class="fas fa-check-circle"></i> Basic File Hosting</li>
+                        <li><i class="fas fa-check-circle"></i> 24/7 Uptime</li>
+                        <li><i class="fas fa-check-circle"></i> 1 Month Validity</li>
+                    </ul>
+                </div>
+                <a href="/register.html" class="plan-button">Get Started</a>
+            </div>
+            
+            <!-- Basic Plan -->
+            <div class="plan-card popular">
+                <div class="plan-badge">Most Popular</div>
+                <div class="plan-header">
+                    <h3>Basic Plan</h3>
+                    <div class="price">₹99<span>/month</span></div>
+                </div>
+                <div class="plan-features">
+                    <ul>
+                        <li><i class="fas fa-check-circle"></i> 1 GB Storage</li>
+                        <li><i class="fas fa-check-circle"></i> Advanced File Hosting</li>
+                        <li><i class="fas fa-check-circle"></i> Priority Support</li>
+                        <li><i class="fas fa-check-circle"></i> 24/7 Uptime</li>
+                        <li><i class="fas fa-check-circle"></i> 1 Month Validity</li>
+                    </ul>
+                </div>
+                <a href="/register.html" class="plan-button">Get Started</a>
+            </div>
+            
+            <!-- Premium Plan -->
+            <div class="plan-card premium">
+                <div class="plan-header">
+                    <h3>Premium Plan</h3>
+                    <div class="price">₹999<span>/month</span></div>
+                </div>
+                <div class="plan-features">
+                    <ul>
+                        <li><i class="fas fa-check-circle"></i> 10 GB Storage</li>
+                        <li><i class="fas fa-check-circle"></i> Premium File Hosting</li>
+                        <li><i class="fas fa-check-circle"></i> 24/7 Priority Support</li>
+                        <li><i class="fas fa-check-circle"></i> Maximum Uptime</li>
+                        <li><i class="fas fa-check-circle"></i> Advanced Dashboard</li>
+                        <li><i class="fas fa-check-circle"></i> 1 Month Validity</li>
+                    </ul>
+                </div>
+                <a href="/register.html" class="plan-button">Get Started</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section id="features" class="features-section">
+        <h2>Why Choose Our Hosting?</h2>
+        <div class="features-container">
+            <div class="feature">
+                <i class="fas fa-bolt"></i>
+                <h3>Lightning Fast</h3>
+                <p>Optimized servers for maximum performance and speed.</p>
+            </div>
+            <div class="feature">
+                <i class="fas fa-shield-alt"></i>
+                <h3>Secure & Safe</h3>
+                <p>Enterprise-level security to protect your data and code.</p>
+            </div>
+            <div class="feature">
+                <i class="fas fa-upload"></i>
+                <h3>Easy Upload</h3>
+                <p>Simple drag-and-drop interface for easy file management.</p>
+            </div>
+            <div class="feature">
+                <i class="fas fa-headset"></i>
+                <h3>24/7 Support</h3>
+                <p>Round-the-clock support to help you anytime.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- UPI Payment Section -->
+    <section class="payment-section">
+        <h2>Easy UPI Payments</h2>
+        <p>Pay securely using any UPI app. Instant activation after payment.</p>
+        <div class="upi-info">
+            <div class="upi-details">
+                <h3><i class="fas fa-qrcode"></i> Scan to Pay</h3>
+                <div class="upi-id">
+                    <strong>UPI ID:</strong> thedigamber@fam
+                </div>
+                <p>Use this UPI ID for manual payments or scan the QR code.</p>
+            </div>
+            <div class="qr-code">
+                <!-- QR Code will be generated dynamically -->
+                <div id="qrContainer"></div>
+                <p>Scan with any UPI app</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer id="contact">
+        <div class="footer-container">
+            <div class="footer-section">
+                <h3>PremiumHost</h3>
+                <p>Your reliable partner for 24/7 code hosting. Fast, secure, and always online.</p>
+            </div>
+            <div class="footer-section">
+                <h3>Quick Links</h3>
+                <a href="#home">Home</a>
+                <a href="#plans">Plans</a>
+                <a href="#features">Features</a>
+                <a href="/login.html">Login</a>
+            </div>
+            <div class="footer-section">
+                <h3>Contact</h3>
+                <p><i class="fas fa-envelope"></i> support@premiumhost.com</p>
+                <p><i class="fas fa-phone"></i> +91 XXXXX XXXXX</p>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>&copy; 2024 PremiumHost. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script src="/scripts.js"></script>
+</body>
+</html>
