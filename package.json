@@ -1,11 +1,12 @@
 {
-  "name": "premium-hosting",
-  "version": "2.0.0",
-  "description": "Premium 24/7 Hosting Website with UPI Payments - Fixed Version",
+  "name": "premium-hosting-real",
+  "version": "3.0.0",
+  "description": "Real 24/7 File Hosting with UPI Payments",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js",
+    "setup": "mkdir -p uploads && echo 'Uploads directory created'",
     "test": "echo \"No tests specified\" && exit 0"
   },
   "dependencies": {
@@ -13,7 +14,9 @@
     "mongoose": "^7.5.0",
     "bcryptjs": "^2.4.3",
     "express-session": "^1.17.3",
-    "dotenv": "^16.3.1"
+    "dotenv": "^16.3.1",
+    "multer": "^1.4.5-lts.1",
+    "crypto": "^1.0.1"
   },
   "devDependencies": {
     "nodemon": "^3.0.1"
@@ -22,12 +25,16 @@
     "node": ">=16.0.0"
   },
   "keywords": [
-    "hosting",
-    "premium",
-    "24/7",
-    "upi",
-    "file-hosting"
+    "file-hosting",
+    "cloud-storage",
+    "premium-hosting",
+    "upi-payments",
+    "24-7-hosting"
   ],
   "author": "thedigamber",
-  "license": "MIT"
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/rahulj878991-cloud/premium-hosting"
+  }
 }
