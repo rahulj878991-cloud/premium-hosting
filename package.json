@@ -1,7 +1,7 @@
 {
   "name": "premium-hosting",
-  "version": "1.0.0",
-  "description": "Premium 24/7 Hosting Website with UPI Payments",
+  "version": "2.0.0",
+  "description": "Premium 24/7 Hosting Website with UPI Payments - Fixed Version",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
