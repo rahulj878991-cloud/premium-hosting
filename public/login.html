@@ -1,1 +1,423 @@
-
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Premium Hosting</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .login-container {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        
+        .login-box {
+            background: white;
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 400px;
+            animation: fadeIn 0.5s ease;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .login-logo {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 30px;
+            color: #4a5568;
+        }
+        
+        .login-logo i {
+            color: #667eea;
+            font-size: 2rem;
+        }
+        
+        .login-logo span {
+            font-size: 1.8rem;
+            font-weight: bold;
+        }
+        
+        .login-box h2 {
+            text-align: center;
+            color: #2d3748;
+            margin-bottom: 30px;
+            font-size: 1.8rem;
+        }
+        
+        .login-form .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .login-form label {
+            display: block;
+            margin-bottom: 8px;
+            color: #4a5568;
+            font-weight: 500;
+            font-size: 0.95rem;
+        }
+        
+        .login-form input {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: all 0.3s;
+            font-family: inherit;
+        }
+        
+        .login-form input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
+        .login-btn {
+            width: 100%;
+            padding: 14px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        
+        .login-btn:hover {
+            background: #5a67d8;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+        
+        .login-btn:disabled {
+            background: #cbd5e0;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .login-message {
+            margin-top: 15px;
+            padding: 12px;
+            border-radius: 8px;
+            text-align: center;
+            font-weight: 500;
+            display: none;
+        }
+        
+        .login-success {
+            background: #c6f6d5;
+            color: #22543d;
+            border: 1px solid #9ae6b4;
+            display: block;
+        }
+        
+        .login-error {
+            background: #fed7d7;
+            color: #742a2a;
+            border: 1px solid #fc8181;
+            display: block;
+        }
+        
+        .login-links {
+            text-align: center;
+            margin-top: 25px;
+            color: #718096;
+            font-size: 0.95rem;
+        }
+        
+        .login-links a {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s;
+        }
+        
+        .login-links a:hover {
+            text-decoration: underline;
+        }
+        
+        .login-links p {
+            margin: 8px 0;
+        }
+        
+        .support-info {
+            margin-top: 25px;
+            padding: 15px;
+            background: #f7fafc;
+            border-radius: 8px;
+            text-align: center;
+            border: 1px solid #e2e8f0;
+        }
+        
+        .support-info h4 {
+            color: #4a5568;
+            margin-bottom: 10px;
+            font-size: 1rem;
+        }
+        
+        .support-info a {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 500;
+            margin: 5px 0;
+        }
+        
+        .support-info a:hover {
+            text-decoration: underline;
+        }
+        
+        .loading-spinner {
+            display: inline-block;
+            width: 18px;
+            height: 18px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-top: 2px solid white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* Responsive */
+        @media (max-width: 480px) {
+            .login-box {
+                padding: 30px 20px;
+            }
+            
+            .login-logo {
+                font-size: 1.5rem;
+            }
+            
+            .login-box h2 {
+                font-size: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-box">
+            <div class="login-logo">
+                <i class="fas fa-server"></i>
+                <span>PremiumHost</span>
+            </div>
+            
+            <h2>Login to Your Account</h2>
+            
+            <form id="loginForm" class="login-form">
+                <div class="form-group">
+                    <label for="username">
+                        <i class="fas fa-user"></i> Username
+                    </label>
+                    <input 
+                        type="text" 
+                        id="username" 
+                        name="username" 
+                        placeholder="Enter your username" 
+                        required
+                        autocomplete="username"
+                    >
+                </div>
+                
+                <div class="form-group">
+                    <label for="password">
+                        <i class="fas fa-lock"></i> Password
+                    </label>
+                    <input 
+                        type="password" 
+                        id="password" 
+                        name="password" 
+                        placeholder="Enter your password" 
+                        required
+                        autocomplete="current-password"
+                    >
+                </div>
+                
+                <button type="submit" class="login-btn" id="loginButton">
+                    <span id="loginText">Login</span>
+                    <span id="loginSpinner" class="loading-spinner" style="display: none;"></span>
+                </button>
+                
+                <div id="loginMessage" class="login-message"></div>
+            </form>
+            
+            <div class="login-links">
+                <p>Don't have an account? <a href="/register.html">Sign up here</a></p>
+                <p><a href="/">← Back to Homepage</a></p>
+            </div>
+            
+            <div class="support-info">
+                <h4><i class="fas fa-headset"></i> Need Help?</h4>
+                <p>Join our Discord support server:</p>
+                <a href="https://discord.gg/5bFnXdUp8U" target="_blank" rel="noopener noreferrer">
+                    <i class="fab fa-discord"></i> https://discord.gg/5bFnXdUp8U
+                </a>
+                <p style="margin-top: 10px;">Email support: devoteehanumaan@gmail.com</p>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Check if already logged in
+            checkLoginStatus();
+            
+            // Login form submission
+            const loginForm = document.getElementById('loginForm');
+            const loginButton = document.getElementById('loginButton');
+            const loginText = document.getElementById('loginText');
+            const loginSpinner = document.getElementById('loginSpinner');
+            const loginMessage = document.getElementById('loginMessage');
+            
+            loginForm.addEventListener('submit', async function(e) {
+                e.preventDefault();
+                
+                const username = document.getElementById('username').value.trim();
+                const password = document.getElementById('password').value;
+                
+                // Basic validation
+                if (!username || !password) {
+                    showMessage('Please enter both username and password', 'error');
+                    return;
+                }
+                
+                // Show loading state
+                loginButton.disabled = true;
+                loginText.textContent = 'Logging in...';
+                loginSpinner.style.display = 'inline-block';
+                loginMessage.style.display = 'none';
+                
+                try {
+                    const response = await fetch('/api/login', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Accept': 'application/json'
+                        },
+                        body: JSON.stringify({ username, password })
+                    });
+                    
+                    let data;
+                    try {
+                        data = await response.json();
+                    } catch (jsonError) {
+                        console.error('JSON Parse Error:', jsonError);
+                        throw new Error('Server response error. Please try again.');
+                    }
+                    
+                    if (response.ok && data.success) {
+                        showMessage('Login successful! Redirecting...', 'success');
+                        
+                        // Store user data in localStorage for quick access
+                        if (data.user) {
+                            localStorage.setItem('user', JSON.stringify(data.user));
+                        }
+                        
+                        // Redirect based on user type
+                        setTimeout(() => {
+                            if (data.user && (data.user.isAdmin || data.user.username === 'thedigamber')) {
+                                window.location.href = '/admin.html';
+                            } else {
+                                window.location.href = '/dashboard.html';
+                            }
+                        }, 1500);
+                        
+                    } else {
+                        const errorMessage = data.error || 'Login failed. Please check your credentials.';
+                        showMessage(errorMessage, 'error');
+                        resetLoginButton();
+                    }
+                    
+                } catch (error) {
+                    console.error('Login Error:', error);
+                    showMessage('Network error. Please check your connection and try again.', 'error');
+                    resetLoginButton();
+                }
+            });
+            
+            function showMessage(message, type) {
+                loginMessage.textContent = message;
+                loginMessage.className = 'login-message';
+                loginMessage.classList.add(`login-${type}`);
+                loginMessage.style.display = 'block';
+                
+                // Auto-hide error messages after 5 seconds
+                if (type === 'error') {
+                    setTimeout(() => {
+                        loginMessage.style.display = 'none';
+                    }, 5000);
+                }
+            }
+            
+            function resetLoginButton() {
+                loginButton.disabled = false;
+                loginText.textContent = 'Login';
+                loginSpinner.style.display = 'none';
+            }
+            
+            // Enter key to submit form
+            document.getElementById('password').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    loginForm.dispatchEvent(new Event('submit'));
+                }
+            });
+            
+            // Auto-focus username field
+            document.getElementById('username').focus();
+        });
+        
+        async function checkLoginStatus() {
+            try {
+                const response = await fetch('/api/user', {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json'
+                    },
+                    credentials: 'include' // Important for sessions
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.success && data.user) {
+                        // Already logged in, redirect
+                        if (data.user.isAdmin || data.user.username === 'thedigamber') {
+                            window.location.href = '/admin.html';
+                        } else {
+                            window.location.href = '/dashboard.html';
+                        }
+                    }
+                }
+            } catch (error) {
+                // Not logged in, stay on login page
+                console.log('Not logged in');
+            }
+        }
+    </script>
+</body>
+</html>
