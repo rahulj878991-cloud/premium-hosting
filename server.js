@@ -94,7 +94,7 @@ async function initializeAdmin() {
             const adminUser = new User({
                 username: 'thedigamber',
                 password: hashedPassword,
-                email: 'admin@premiumhost.com',
+                email: 'devoteehanumaan@gmail.com',
                 plan: 'premium',
                 storageLimit: 10240, // 10GB
                 isAdmin: true
@@ -106,7 +106,7 @@ async function initializeAdmin() {
             usersCache.push({
                 _id: adminUser._id.toString(),
                 username: 'thedigamber',
-                email: 'admin@premiumhost.com',
+                email: 'devoteehanumaan@gmail.com',
                 plan: 'premium',
                 storageLimit: 10240,
                 storageUsed: 0,
@@ -126,7 +126,7 @@ async function initializeAdmin() {
         usersCache.push({
             _id: 'admin_001',
             username: 'thedigamber',
-            email: 'admin@premiumhost.com',
+            email: 'devoteehanumaan@gmail.com',
             password: await bcrypt.hash('6203', 10),
             plan: 'premium',
             storageLimit: 10240,
