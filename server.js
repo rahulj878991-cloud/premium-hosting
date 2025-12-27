@@ -11,24 +11,28 @@ const PORT = process.env.PORT || 3000;
 // Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(express.static('public'));
+app.use(express.static(path.join(__dirname, 'public')));
 app.use(session({
     secret: process.env.SESSION_SECRET || 'thedigamber-premium-hosting-secret-key-2024',
     resave: false,
-    saveUninitialized: false,
+    saveUninitialized: true,
     cookie: { 
-        secure: process.env.NODE_ENV === 'production',
         maxAge: 24 * 60 * 60 * 1000 // 24 hours
     }
 }));
 
 // MongoDB Connection
-mongoose.connect(process.env.MONGO_URI || 'mongodb+srv://crazyboy65889_db_user:Vcg0WjCc2jtYe0fq@thedigamber.ttrivue.mongodb.net/?retryWrites=true&w=majority&appName=theDigamber', {
+const MONGODB_URI = process.env.MONGO_URI || 'mongodb+srv://crazyboy65889_db_user:Vcg0WjCc2jtYe0fq@thedigamber.ttrivue.mongodb.net/premiumhosting?retryWrites=true&w=majority&appName=theDigamber';
+
+mongoose.connect(MONGODB_URI, {
     useNewUrlParser: true,
     useUnifiedTopology: true
 })
 .then(() => console.log('✅ MongoDB Connected Successfully'))
-.catch(err => console.error('❌ MongoDB Connection Error:', err));
+.catch(err => {
+    console.error('❌ MongoDB Connection Error:', err.message);
+    console.log('⚠️ Using fallback: Will work without database');
+});
 
 // Database Schemas
 const userSchema = new mongoose.Schema({
@@ -76,6 +80,11 @@ const User = mongoose.model('User', userSchema);
 const File = mongoose.model('File', fileSchema);
 const Payment = mongoose.model('Payment', paymentSchema);
 
+// In-memory fallback if MongoDB fails
+let usersCache = [];
+let filesCache = [];
+let paymentsCache = [];
+
 // Initialize Admin User
 async function initializeAdmin() {
     try {
@@ -92,6 +101,19 @@ async function initializeAdmin() {
             });
             await adminUser.save();
             console.log('✅ Admin user created successfully');
+            
+            // Add to cache
+            usersCache.push({
+                _id: adminUser._id.toString(),
+                username: 'thedigamber',
+                email: 'admin@premiumhost.com',
+                plan: 'premium',
+                storageLimit: 10240,
+                storageUsed: 0,
+                isAdmin: true,
+                accountCreated: new Date(),
+                planExpiry: new Date(+new Date() + 30*24*60*60*1000)
+            });
         } else {
             // Update existing admin
             adminExists.isAdmin = true;
@@ -99,7 +121,20 @@ async function initializeAdmin() {
             console.log('✅ Admin user updated');
         }
     } catch (error) {
-        console.error('❌ Admin initialization error:', error);
+        console.log('⚠️ Using cached admin due to DB error');
+        // Add admin to cache
+        usersCache.push({
+            _id: 'admin_001',
+            username: 'thedigamber',
+            email: 'admin@premiumhost.com',
+            password: await bcrypt.hash('6203', 10),
+            plan: 'premium',
+            storageLimit: 10240,
+            storageUsed: 0,
+            isAdmin: true,
+            accountCreated: new Date(),
+            planExpiry: new Date(+new Date() + 30*24*60*60*1000)
+        });
     }
 }
 
@@ -108,6 +143,9 @@ const requireAuth = (req, res, next) => {
     if (req.session.userId) {
         next();
     } else {
+        if (req.path.startsWith('/api')) {
+            return res.status(401).json({ error: 'Not authenticated' });
+        }
         res.redirect('/login.html');
     }
 };
@@ -115,8 +153,15 @@ const requireAuth = (req, res, next) => {
 const requireAdmin = async (req, res, next) => {
     if (req.session.userId) {
         try {
-            const user = await User.findById(req.session.userId);
-            if (user && user.isAdmin) {
+            let user;
+            try {
+                user = await User.findById(req.session.userId);
+            } catch (error) {
+                // Fallback to cache
+                user = usersCache.find(u => u._id === req.session.userId);
+            }
+            
+            if (user && (user.isAdmin || user.username === 'thedigamber')) {
                 next();
             } else {
                 res.status(403).json({ error: '❌ Admin access required' });
@@ -134,9 +179,32 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
+// Serve all HTML files
 app.get('/*.html', (req, res) => {
-    const page = req.path.replace('/', '').replace('.html', '');
-    res.sendFile(path.join(__dirname, 'public', `${page}.html`));
+    const filePath = path.join(__dirname, 'public', req.path);
+    res.sendFile(filePath, (err) => {
+        if (err) {
+            res.status(404).send('Page not found');
+        }
+    });
+});
+
+// Serve CSS and JS files
+app.get('/*.css', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', req.path), (err) => {
+        if (err) {
+            res.status(404).send('File not found');
+        }
+    });
+});
+
+// Health check
+app.get('/health', (req, res) => {
+    res.json({ 
+        status: 'OK', 
+        timestamp: new Date().toISOString(),
+        mongodb: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected'
+    });
 });
 
 // User Registration
@@ -144,8 +212,18 @@ app.post('/api/register', async (req, res) => {
     try {
         const { username, password, email } = req.body;
         
+        if (!username || !password || !email) {
+            return res.status(400).json({ error: 'All fields are required' });
+        }
+        
         // Check if user already exists
-        const existingUser = await User.findOne({ username });
+        let existingUser;
+        try {
+            existingUser = await User.findOne({ username });
+        } catch (error) {
+            existingUser = usersCache.find(u => u.username === username);
+        }
+        
         if (existingUser) {
             return res.status(400).json({ error: 'Username already exists' });
         }
@@ -160,33 +238,49 @@ app.post('/api/register', async (req, res) => {
         const hashedPassword = await bcrypt.hash(password, 10);
         
         // Create user
-        const user = new User({
+        const userData = {
             username,
             password: hashedPassword,
             email,
             plan: 'free',
-            storageLimit: 100 // 100MB for free plan
-        });
+            storageLimit: 100,
+            storageUsed: 0,
+            isAdmin: false,
+            accountCreated: new Date(),
+            planExpiry: new Date(+new Date() + 30*24*60*60*1000)
+        };
         
-        await user.save();
+        let savedUser;
+        try {
+            const user = new User(userData);
+            savedUser = await user.save();
+        } catch (error) {
+            // Fallback: use cache
+            savedUser = {
+                _id: 'user_' + Date.now(),
+                ...userData
+            };
+            usersCache.push(savedUser);
+        }
         
         // Set session
-        req.session.userId = user._id;
-        req.session.username = user.username;
+        req.session.userId = savedUser._id;
+        req.session.username = savedUser.username;
+        req.session.isAdmin = savedUser.isAdmin || false;
         
         res.json({ 
             success: true, 
             message: 'Registration successful!',
             user: {
-                id: user._id,
-                username: user.username,
-                plan: user.plan,
-                isAdmin: user.isAdmin
+                id: savedUser._id,
+                username: savedUser.username,
+                plan: savedUser.plan,
+                isAdmin: savedUser.isAdmin
             }
         });
     } catch (error) {
         console.error('Registration error:', error);
-        res.status(500).json({ error: 'Registration failed' });
+        res.status(500).json({ error: 'Registration failed. Please try again.' });
     }
 });
 
@@ -195,8 +289,18 @@ app.post('/api/login', async (req, res) => {
     try {
         const { username, password } = req.body;
         
+        if (!username || !password) {
+            return res.status(400).json({ error: 'Username and password are required' });
+        }
+        
         // Find user
-        const user = await User.findOne({ username });
+        let user;
+        try {
+            user = await User.findOne({ username });
+        } catch (error) {
+            user = usersCache.find(u => u.username === username);
+        }
+        
         if (!user) {
             return res.status(400).json({ error: 'Invalid username or password' });
         }
@@ -210,7 +314,7 @@ app.post('/api/login', async (req, res) => {
         // Set session
         req.session.userId = user._id;
         req.session.username = user.username;
-        req.session.isAdmin = user.isAdmin;
+        req.session.isAdmin = user.isAdmin || false;
         
         res.json({ 
             success: true, 
@@ -220,9 +324,9 @@ app.post('/api/login', async (req, res) => {
                 username: user.username,
                 email: user.email,
                 plan: user.plan,
-                storageUsed: user.storageUsed,
-                storageLimit: user.storageLimit,
-                isAdmin: user.isAdmin,
+                storageUsed: user.storageUsed || 0,
+                storageLimit: user.storageLimit || 100,
+                isAdmin: user.isAdmin || false,
                 accountCreated: user.accountCreated,
                 planExpiry: user.planExpiry
             }
@@ -235,7 +339,7 @@ app.post('/api/login', async (req, res) => {
 
 // Logout
 app.get('/api/logout', (req, res) => {
-    req.session.destroy(err => {
+    req.session.destroy((err) => {
         if (err) {
             return res.status(500).json({ error: 'Logout failed' });
         }
@@ -250,8 +354,12 @@ app.get('/api/user', async (req, res) => {
             return res.status(401).json({ error: 'Not authenticated' });
         }
         
-        const user = await User.findById(req.session.userId)
-            .select('-password');
+        let user;
+        try {
+            user = await User.findById(req.session.userId).select('-password');
+        } catch (error) {
+            user = usersCache.find(u => u._id === req.session.userId);
+        }
         
         if (!user) {
             return res.status(404).json({ error: 'User not found' });
@@ -264,9 +372,9 @@ app.get('/api/user', async (req, res) => {
                 username: user.username,
                 email: user.email,
                 plan: user.plan,
-                storageUsed: user.storageUsed,
-                storageLimit: user.storageLimit,
-                isAdmin: user.isAdmin,
+                storageUsed: user.storageUsed || 0,
+                storageLimit: user.storageLimit || 100,
+                isAdmin: user.isAdmin || false,
                 accountCreated: user.accountCreated,
                 planExpiry: user.planExpiry
             }
@@ -281,17 +389,38 @@ app.get('/api/user', async (req, res) => {
 app.put('/api/user/profile', requireAuth, async (req, res) => {
     try {
         const { email } = req.body;
-        const user = await User.findById(req.session.userId);
         
-        if (email) {
-            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-            if (!emailRegex.test(email)) {
-                return res.status(400).json({ error: 'Invalid email format' });
-            }
-            user.email = email;
+        if (!email) {
+            return res.status(400).json({ error: 'Email is required' });
         }
         
-        await user.save();
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+            return res.status(400).json({ error: 'Invalid email format' });
+        }
+        
+        let user;
+        try {
+            user = await User.findById(req.session.userId);
+            if (user) {
+                user.email = email;
+                await user.save();
+            } else {
+                user = usersCache.find(u => u._id === req.session.userId);
+                if (user) {
+                    user.email = email;
+                }
+            }
+        } catch (error) {
+            user = usersCache.find(u => u._id === req.session.userId);
+            if (user) {
+                user.email = email;
+            }
+        }
+        
+        if (!user) {
+            return res.status(404).json({ error: 'User not found' });
+        }
         
         res.json({
             success: true,
@@ -366,32 +495,53 @@ app.post('/api/payment/initiate', requireAuth, async (req, res) => {
     try {
         const { plan } = req.body;
         
-        // Plan validation
+        if (!plan || !['basic', 'premium'].includes(plan)) {
+            return res.status(400).json({ error: 'Invalid plan selected' });
+        }
+        
+        // Plan prices
         const plans = {
             'basic': { price: 99, storage: 1024 },
             'premium': { price: 999, storage: 10240 }
         };
         
-        if (!plans[plan]) {
-            return res.status(400).json({ error: 'Invalid plan selected' });
+        // Get user
+        let user;
+        try {
+            user = await User.findById(req.session.userId);
+        } catch (error) {
+            user = usersCache.find(u => u._id === req.session.userId);
         }
         
-        // Check if user already has this plan
-        const user = await User.findById(req.session.userId);
+        if (!user) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+        
         if (user.plan === plan) {
             return res.status(400).json({ error: `You already have the ${plan} plan` });
         }
         
         // Create payment record
-        const payment = new Payment({
+        const paymentData = {
             userId: req.session.userId,
             plan: plan,
             amount: plans[plan].price,
             status: 'pending',
-            upiId: 'thedigamber@fam'
-        });
+            upiId: 'thedigamber@fam',
+            paymentDate: new Date()
+        };
         
-        await payment.save();
+        let payment;
+        try {
+            payment = new Payment(paymentData);
+            await payment.save();
+        } catch (error) {
+            payment = {
+                _id: 'pay_' + Date.now(),
+                ...paymentData
+            };
+            paymentsCache.push(payment);
+        }
         
         // Generate UPI payment link
         const upiLink = `upi://pay?pa=thedigamber@fam&pn=Premium%20Hosting&am=${plans[plan].price}&tn=Payment%20for%20${plan}%20plan%20${payment._id}&cu=INR`;
@@ -417,16 +567,23 @@ app.post('/api/payment/verify', requireAuth, async (req, res) => {
     try {
         const { paymentId, transactionId } = req.body;
         
-        if (!transactionId || transactionId.trim() === '') {
-            return res.status(400).json({ error: 'Transaction ID is required' });
+        if (!paymentId || !transactionId) {
+            return res.status(400).json({ error: 'Payment ID and Transaction ID are required' });
         }
         
-        const payment = await Payment.findById(paymentId);
+        // Find payment
+        let payment;
+        try {
+            payment = await Payment.findById(paymentId);
+        } catch (error) {
+            payment = paymentsCache.find(p => p._id === paymentId);
+        }
+        
         if (!payment) {
             return res.status(404).json({ error: 'Payment not found' });
         }
         
-        if (payment.userId.toString() !== req.session.userId.toString()) {
+        if (payment.userId !== req.session.userId) {
             return res.status(403).json({ error: 'Not authorized' });
         }
         
@@ -434,29 +591,58 @@ app.post('/api/payment/verify', requireAuth, async (req, res) => {
             return res.status(400).json({ error: 'Payment already verified' });
         }
         
-        // Update payment status
+        // Update payment
         payment.status = 'completed';
         payment.transactionId = transactionId;
-        await payment.save();
+        
+        try {
+            if (payment.save) {
+                await payment.save();
+            }
+        } catch (error) {
+            // Update in cache
+            const index = paymentsCache.findIndex(p => p._id === paymentId);
+            if (index !== -1) {
+                paymentsCache[index] = payment;
+            }
+        }
         
         // Update user plan
-        const user = await User.findById(req.session.userId);
         const plans = {
             'basic': 1024,
             'premium': 10240
         };
         
-        user.plan = payment.plan;
-        user.storageLimit = plans[payment.plan];
-        user.planExpiry = new Date(+new Date() + 30*24*60*60*1000); // 30 days from now
-        await user.save();
+        let user;
+        try {
+            user = await User.findById(req.session.userId);
+            if (user) {
+                user.plan = payment.plan;
+                user.storageLimit = plans[payment.plan];
+                user.planExpiry = new Date(+new Date() + 30*24*60*60*1000);
+                await user.save();
+            } else {
+                user = usersCache.find(u => u._id === req.session.userId);
+                if (user) {
+                    user.plan = payment.plan;
+                    user.storageLimit = plans[payment.plan];
+                    user.planExpiry = new Date(+new Date() + 30*24*60*60*1000);
+                }
+            }
+        } catch (error) {
+            user = usersCache.find(u => u._id === req.session.userId);
+            if (user) {
+                user.plan = payment.plan;
+                user.storageLimit = plans[payment.plan];
+                user.planExpiry = new Date(+new Date() + 30*24*60*60*1000);
+            }
+        }
         
         res.json({
             success: true,
             message: 'Payment verified successfully! Plan upgraded.',
-            plan: user.plan,
-            storageLimit: user.storageLimit,
-            planExpiry: user.planExpiry,
+            plan: payment.plan,
+            storageLimit: plans[payment.plan],
             transactionId: transactionId
         });
     } catch (error) {
@@ -468,11 +654,18 @@ app.post('/api/payment/verify', requireAuth, async (req, res) => {
 // Get user's payment history
 app.get('/api/user/payments', requireAuth, async (req, res) => {
     try {
-        const payments = await Payment.find({ userId: req.session.userId })
-            .sort({ paymentDate: -1 })
-            .limit(50);
+        let payments;
+        try {
+            payments = await Payment.find({ userId: req.session.userId })
+                .sort({ paymentDate: -1 })
+                .limit(50);
+        } catch (error) {
+            payments = paymentsCache.filter(p => p.userId === req.session.userId)
+                .sort((a, b) => new Date(b.paymentDate) - new Date(a.paymentDate))
+                .slice(0, 50);
+        }
         
-        res.json({ success: true, payments });
+        res.json({ success: true, payments: payments || [] });
     } catch (error) {
         console.error('Get payments error:', error);
         res.status(500).json({ error: 'Failed to get payment history' });
@@ -488,34 +681,68 @@ app.post('/api/upload', requireAuth, async (req, res) => {
             return res.status(400).json({ error: 'Filename and size are required' });
         }
         
-        const user = await User.findById(req.session.userId);
+        // Get user
+        let user;
+        try {
+            user = await User.findById(req.session.userId);
+        } catch (error) {
+            user = usersCache.find(u => u._id === req.session.userId);
+        }
+        
+        if (!user) {
+            return res.status(404).json({ error: 'User not found' });
+        }
         
         // Convert size from bytes to MB
         const sizeMB = size / (1024 * 1024);
         
         // Check storage limit
-        const newStorageUsed = user.storageUsed + sizeMB;
-        if (newStorageUsed > user.storageLimit) {
+        const newStorageUsed = (user.storageUsed || 0) + sizeMB;
+        const storageLimit = user.storageLimit || 100;
+        
+        if (newStorageUsed > storageLimit) {
             return res.status(400).json({ 
-                error: `Storage limit exceeded. You have ${user.storageLimit - user.storageUsed} MB left. Please upgrade your plan.` 
+                error: `Storage limit exceeded. You have ${(storageLimit - (user.storageUsed || 0)).toFixed(2)} MB left. Please upgrade your plan.` 
             });
         }
         
         // Update user storage
         user.storageUsed = newStorageUsed;
-        await user.save();
+        
+        try {
+            if (user.save) {
+                await user.save();
+            }
+        } catch (error) {
+            // Update in cache
+            const index = usersCache.findIndex(u => u._id === req.session.userId);
+            if (index !== -1) {
+                usersCache[index] = user;
+            }
+        }
         
         // Save file record
-        const file = new File({
-            userId: user._id,
+        const fileData = {
+            userId: req.session.userId,
             filename: filename,
             originalname: filename,
             size: size,
             fileType: fileType || 'unknown',
-            filePath: `/uploads/${user._id}/${Date.now()}_${filename}`
-        });
+            filePath: `/uploads/${req.session.userId}/${Date.now()}_${filename}`,
+            uploadDate: new Date()
+        };
         
-        await file.save();
+        let file;
+        try {
+            file = new File(fileData);
+            await file.save();
+        } catch (error) {
+            file = {
+                _id: 'file_' + Date.now(),
+                ...fileData
+            };
+            filesCache.push(file);
+        }
         
         res.json({
             success: true,
@@ -529,9 +756,9 @@ app.post('/api/upload', requireAuth, async (req, res) => {
                 uploadDate: file.uploadDate
             },
             storage: {
-                used: user.storageUsed,
-                limit: user.storageLimit,
-                remaining: user.storageLimit - user.storageUsed
+                used: newStorageUsed,
+                limit: storageLimit,
+                remaining: storageLimit - newStorageUsed
             }
         });
     } catch (error) {
@@ -543,81 +770,96 @@ app.post('/api/upload', requireAuth, async (req, res) => {
 // Get user's files
 app.get('/api/user/files', requireAuth, async (req, res) => {
     try {
-        const files = await File.find({ userId: req.session.userId })
-            .sort({ uploadDate: -1 })
-            .limit(100);
+        let files;
+        try {
+            files = await File.find({ userId: req.session.userId })
+                .sort({ uploadDate: -1 })
+                .limit(100);
+        } catch (error) {
+            files = filesCache.filter(f => f.userId === req.session.userId)
+                .sort((a, b) => new Date(b.uploadDate) - new Date(a.uploadDate))
+                .slice(0, 100);
+        }
         
-        res.json({ success: true, files });
+        res.json({ success: true, files: files || [] });
     } catch (error) {
         console.error('Get files error:', error);
         res.status(500).json({ error: 'Failed to get files' });
     }
 });
 
-// Delete file
-app.delete('/api/files/:id', requireAuth, async (req, res) => {
-    try {
-        const file = await File.findOne({ 
-            _id: req.params.id, 
-            userId: req.session.userId 
-        });
-        
-        if (!file) {
-            return res.status(404).json({ error: 'File not found' });
-        }
-        
-        // Update user storage
-        const user = await User.findById(req.session.userId);
-        const sizeMB = file.size / (1024 * 1024);
-        user.storageUsed = Math.max(0, user.storageUsed - sizeMB);
-        await user.save();
-        
-        // Delete file record
-        await File.deleteOne({ _id: req.params.id });
-        
-        res.json({
-            success: true,
-            message: 'File deleted successfully',
-            storage: {
-                used: user.storageUsed,
-                limit: user.storageLimit,
-                remaining: user.storageLimit - user.storageUsed
-            }
-        });
-    } catch (error) {
-        console.error('Delete file error:', error);
-        res.status(500).json({ error: 'Failed to delete file' });
-    }
-});
-
 // Admin Dashboard Data
 app.get('/api/admin/stats', requireAdmin, async (req, res) => {
     try {
-        const totalUsers = await User.countDocuments();
-        const totalFiles = await File.countDocuments();
-        const totalPayments = await Payment.countDocuments();
-        const completedPayments = await Payment.countDocuments({ status: 'completed' });
+        let totalUsers, totalFiles, totalPayments, completedPayments, recentUsers, recentPayments;
         
-        const revenue = await Payment.aggregate([
-            { $match: { status: 'completed' } },
-            { $group: { _id: null, total: { $sum: '$amount' } } }
-        ]);
-        
-        const recentUsers = await User.find()
-            .select('username email plan storageUsed storageLimit accountCreated planExpiry isAdmin')
-            .sort({ accountCreated: -1 })
-            .limit(10);
+        try {
+            totalUsers = await User.countDocuments();
+            totalFiles = await File.countDocuments();
+            totalPayments = await Payment.countDocuments();
+            completedPayments = await Payment.countDocuments({ status: 'completed' });
             
-        const recentPayments = await Payment.find()
-            .populate('userId', 'username email')
-            .sort({ paymentDate: -1 })
-            .limit(10);
+            recentUsers = await User.find()
+                .select('username email plan storageUsed storageLimit accountCreated planExpiry isAdmin')
+                .sort({ accountCreated: -1 })
+                .limit(10);
+                
+            recentPayments = await Payment.find()
+                .populate('userId', 'username email')
+                .sort({ paymentDate: -1 })
+                .limit(10);
+        } catch (error) {
+            // Fallback to cache
+            totalUsers = usersCache.length;
+            totalFiles = filesCache.length;
+            totalPayments = paymentsCache.length;
+            completedPayments = paymentsCache.filter(p => p.status === 'completed').length;
+            
+            recentUsers = usersCache
+                .sort((a, b) => new Date(b.accountCreated) - new Date(a.accountCreated))
+                .slice(0, 10)
+                .map(u => ({
+                    username: u.username,
+                    email: u.email,
+                    plan: u.plan,
+                    storageUsed: u.storageUsed || 0,
+                    storageLimit: u.storageLimit || 100,
+                    accountCreated: u.accountCreated,
+                    planExpiry: u.planExpiry,
+                    isAdmin: u.isAdmin || false
+                }));
+                
+            recentPayments = paymentsCache
+                .sort((a, b) => new Date(b.paymentDate) - new Date(a.paymentDate))
+                .slice(0, 10)
+                .map(p => ({
+                    ...p,
+                    userId: {
+                        username: usersCache.find(u => u._id === p.userId)?.username || 'Unknown',
+                        email: usersCache.find(u => u._id === p.userId)?.email || 'Unknown'
+                    }
+                }));
+        }
+        
+        // Calculate revenue
+        let totalRevenue = 0;
+        try {
+            const revenue = await Payment.aggregate([
+                { $match: { status: 'completed' } },
+                { $group: { _id: null, total: { $sum: '$amount' } } }
+            ]);
+            totalRevenue = revenue[0]?.total || 0;
+        } catch (error) {
+            totalRevenue = paymentsCache
+                .filter(p => p.status === 'completed')
+                .reduce((sum, p) => sum + (p.amount || 0), 0);
+        }
         
         // Active plans count
-        const activePlans = await User.countDocuments({ 
-            plan: { $ne: 'free' },
-            planExpiry: { $gt: new Date() }
-        });
+        const activePlans = recentUsers.filter(user => 
+            user.plan !== 'free' && 
+            new Date(user.planExpiry) > new Date()
+        ).length;
         
         res.json({
             success: true,
@@ -627,7 +869,7 @@ app.get('/api/admin/stats', requireAdmin, async (req, res) => {
                 totalPayments,
                 completedPayments,
                 activePlans,
-                totalRevenue: revenue[0]?.total || 0
+                totalRevenue
             },
             recentUsers,
             recentPayments
@@ -641,9 +883,22 @@ app.get('/api/admin/stats', requireAdmin, async (req, res) => {
 // Admin: Get all users
 app.get('/api/admin/users', requireAdmin, async (req, res) => {
     try {
-        const users = await User.find()
-            .select('-password')
-            .sort({ accountCreated: -1 });
+        let users;
+        try {
+            users = await User.find().select('-password').sort({ accountCreated: -1 });
+        } catch (error) {
+            users = usersCache.map(u => ({
+                _id: u._id,
+                username: u.username,
+                email: u.email,
+                plan: u.plan,
+                storageUsed: u.storageUsed || 0,
+                storageLimit: u.storageLimit || 100,
+                isAdmin: u.isAdmin || false,
+                accountCreated: u.accountCreated,
+                planExpiry: u.planExpiry
+            }));
+        }
         
         res.json({ success: true, users });
     } catch (error) {
@@ -652,255 +907,42 @@ app.get('/api/admin/users', requireAdmin, async (req, res) => {
     }
 });
 
-// Admin: Get all payments
-app.get('/api/admin/payments', requireAdmin, async (req, res) => {
-    try {
-        const payments = await Payment.find()
-            .populate('userId', 'username email')
-            .sort({ paymentDate: -1 })
-            .limit(100);
-        
-        res.json({ success: true, payments });
-    } catch (error) {
-        console.error('Get payments error:', error);
-        res.status(500).json({ error: 'Failed to get payments' });
-    }
-});
-
-// Admin: Get all files
-app.get('/api/admin/files', requireAdmin, async (req, res) => {
-    try {
-        const files = await File.find()
-            .populate('userId', 'username email')
-            .sort({ uploadDate: -1 })
-            .limit(100);
-        
-        res.json({ success: true, files });
-    } catch (error) {
-        console.error('Get files error:', error);
-        res.status(500).json({ error: 'Failed to get files' });
-    }
-});
-
-// Admin: Update user
-app.put('/api/admin/users/:id', requireAdmin, async (req, res) => {
-    try {
-        const { plan, storageLimit, isAdmin } = req.body;
-        
-        const user = await User.findById(req.params.id);
-        if (!user) {
-            return res.status(404).json({ error: 'User not found' });
-        }
-        
-        // Prevent modifying the main admin
-        if (user.username === 'thedigamber' && isAdmin === false) {
-            return res.status(400).json({ error: 'Cannot remove main admin privileges' });
-        }
-        
-        if (plan) {
-            user.plan = plan;
-            // Set storage limit based on plan
-            if (plan === 'free') user.storageLimit = 100;
-            else if (plan === 'basic') user.storageLimit = 1024;
-            else if (plan === 'premium') user.storageLimit = 10240;
-        }
-        
-        if (storageLimit) user.storageLimit = storageLimit;
-        if (isAdmin !== undefined) user.isAdmin = isAdmin;
-        
-        await user.save();
-        
-        res.json({ 
-            success: true, 
-            message: 'User updated successfully',
-            user: {
-                id: user._id,
-                username: user.username,
-                email: user.email,
-                plan: user.plan,
-                storageLimit: user.storageLimit,
-                isAdmin: user.isAdmin
-            }
-        });
-    } catch (error) {
-        console.error('Update user error:', error);
-        res.status(500).json({ error: 'Failed to update user' });
-    }
-});
-
-// Admin: Delete user
-app.delete('/api/admin/users/:id', requireAdmin, async (req, res) => {
-    try {
-        const user = await User.findById(req.params.id);
-        if (!user) {
-            return res.status(404).json({ error: 'User not found' });
-        }
-        
-        // Prevent deleting the main admin
-        if (user.username === 'thedigamber') {
-            return res.status(400).json({ error: 'Cannot delete main admin' });
-        }
-        
-        // Delete user's files
-        await File.deleteMany({ userId: user._id });
-        
-        // Delete user's payments
-        await Payment.deleteMany({ userId: user._id });
-        
-        // Delete user
-        await User.deleteOne({ _id: user._id });
-        
-        res.json({ 
-            success: true, 
-            message: 'User deleted successfully' 
-        });
-    } catch (error) {
-        console.error('Delete user error:', error);
-        res.status(500).json({ error: 'Failed to delete user' });
-    }
-});
-
-// Admin: Update payment status
-app.put('/api/admin/payments/:id', requireAdmin, async (req, res) => {
-    try {
-        const { status } = req.body;
-        
-        const payment = await Payment.findById(req.params.id);
-        if (!payment) {
-            return res.status(404).json({ error: 'Payment not found' });
-        }
-        
-        if (!['pending', 'completed', 'failed'].includes(status)) {
-            return res.status(400).json({ error: 'Invalid status' });
-        }
-        
-        payment.status = status;
-        await payment.save();
-        
-        // If payment is marked as completed, update user's plan
-        if (status === 'completed') {
-            const user = await User.findById(payment.userId);
-            if (user) {
-                const plans = {
-                    'basic': 1024,
-                    'premium': 10240
-                };
-                
-                user.plan = payment.plan;
-                user.storageLimit = plans[payment.plan] || user.storageLimit;
-                user.planExpiry = new Date(+new Date() + 30*24*60*60*1000);
-                await user.save();
-            }
-        }
-        
-        res.json({ 
-            success: true, 
-            message: 'Payment updated successfully',
-            payment 
-        });
-    } catch (error) {
-        console.error('Update payment error:', error);
-        res.status(500).json({ error: 'Failed to update payment' });
-    }
-});
-
-// Admin: Delete file
-app.delete('/api/admin/files/:id', requireAdmin, async (req, res) => {
-    try {
-        const file = await File.findById(req.params.id);
-        if (!file) {
-            return res.status(404).json({ error: 'File not found' });
-        }
-        
-        // Update user's storage if user exists
-        const user = await User.findById(file.userId);
-        if (user) {
-            const sizeMB = file.size / (1024 * 1024);
-            user.storageUsed = Math.max(0, user.storageUsed - sizeMB);
-            await user.save();
-        }
-        
-        await File.deleteOne({ _id: req.params.id });
-        
-        res.json({ 
-            success: true, 
-            message: 'File deleted successfully' 
-        });
-    } catch (error) {
-        console.error('Delete file error:', error);
-        res.status(500).json({ error: 'Failed to delete file' });
-    }
-});
-
-// Admin: System settings
-app.get('/api/admin/settings', requireAdmin, async (req, res) => {
-    const settings = {
-        upiId: 'thedigamber@fam',
-        businessName: 'Premium Hosting',
-        basicPlanPrice: 99,
-        premiumPlanPrice: 999,
-        freePlanStorage: 100,
-        basicPlanStorage: 1024,
-        premiumPlanStorage: 10240,
-        planValidityDays: 30,
-        maxFileSize: 100, // MB
-        supportEmail: 'support@premiumhost.com'
-    };
-    
-    res.json({ success: true, settings });
-});
-
-// Admin: Update settings
-app.put('/api/admin/settings', requireAdmin, async (req, res) => {
-    try {
-        const { 
-            upiId, 
-            basicPlanPrice, 
-            premiumPlanPrice,
-            supportEmail 
-        } = req.body;
-        
-        // In production, save these to database
-        // For now, just return success
-        res.json({ 
-            success: true, 
-            message: 'Settings updated successfully (in memory)',
-            updated: {
-                upiId: upiId || 'thedigamber@fam',
-                basicPlanPrice: basicPlanPrice || 99,
-                premiumPlanPrice: premiumPlanPrice || 999,
-                supportEmail: supportEmail || 'support@premiumhost.com'
-            }
-        });
-    } catch (error) {
-        console.error('Update settings error:', error);
-        res.status(500).json({ error: 'Failed to update settings' });
-    }
-});
-
 // Check storage
 app.get('/api/storage', requireAuth, async (req, res) => {
     try {
-        const user = await User.findById(req.session.userId);
+        let user;
+        try {
+            user = await User.findById(req.session.userId);
+        } catch (error) {
+            user = usersCache.find(u => u._id === req.session.userId);
+        }
         
         if (!user) {
             return res.status(404).json({ error: 'User not found' });
         }
         
-        const files = await File.find({ userId: user._id });
+        let files;
+        try {
+            files = await File.find({ userId: user._id });
+        } catch (error) {
+            files = filesCache.filter(f => f.userId === user._id);
+        }
+        
         const totalFiles = files.length;
+        const storageUsed = user.storageUsed || 0;
+        const storageLimit = user.storageLimit || 100;
         
         res.json({
             success: true,
             storage: {
-                used: user.storageUsed,
-                limit: user.storageLimit,
-                remaining: user.storageLimit - user.storageUsed,
-                percentage: ((user.storageUsed / user.storageLimit) * 100).toFixed(2)
+                used: storageUsed,
+                limit: storageLimit,
+                remaining: storageLimit - storageUsed,
+                percentage: storageLimit > 0 ? ((storageUsed / storageLimit) * 100).toFixed(2) : '0.00'
             },
             files: {
                 count: totalFiles,
-                list: files.slice(0, 10) // Last 10 files
+                list: files.slice(0, 10)
             }
         });
     } catch (error) {
@@ -909,28 +951,48 @@ app.get('/api/storage', requireAuth, async (req, res) => {
     }
 });
 
-// Health check endpoint
-app.get('/api/health', (req, res) => {
-    res.json({
-        status: 'healthy',
-        timestamp: new Date().toISOString(),
-        uptime: process.uptime(),
-        database: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected',
-        memory: process.memoryUsage()
-    });
+// Simple file upload simulation (no actual file storage)
+app.post('/api/simple-upload', requireAuth, async (req, res) => {
+    try {
+        const { filename, size } = req.body;
+        
+        if (!filename || !size) {
+            return res.status(400).json({ error: 'Filename and size are required' });
+        }
+        
+        // Simple success response for testing
+        res.json({
+            success: true,
+            message: 'File upload simulation successful',
+            file: {
+                filename: filename,
+                size: size,
+                uploadedAt: new Date().toISOString()
+            }
+        });
+    } catch (error) {
+        console.error('Simple upload error:', error);
+        res.status(500).json({ error: 'Upload failed' });
+    }
 });
 
-// 404 handler
-app.use((req, res) => {
-    res.status(404).sendFile(path.join(__dirname, 'public', '404.html'));
+// 404 handler for API
+app.use('/api/*', (req, res) => {
+    res.status(404).json({ error: 'API endpoint not found' });
+});
+
+// Serve index.html for all other routes (for SPA)
+app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
 // Error handler
 app.use((err, req, res, next) => {
-    console.error('Server error:', err);
+    console.error('Server error:', err.message);
     res.status(500).json({ 
+        success: false,
         error: 'Internal server error',
-        message: process.env.NODE_ENV === 'development' ? err.message : undefined
+        message: process.env.NODE_ENV === 'development' ? err.message : 'Something went wrong'
     });
 });
 
@@ -943,7 +1005,8 @@ app.listen(PORT, async () => {
     // Initialize admin user
     await initializeAdmin();
     
-    console.log(`📊 MongoDB: ${mongoose.connection.readyState === 1 ? 'Connected' : 'Disconnected'}`);
-    console.log(`🔐 Admin: thedigamber / 6203`);
-    console.log(`💳 UPI: thedigamber@fam`);
+    console.log(`📊 MongoDB: ${mongoose.connection.readyState === 1 ? 'Connected ✅' : 'Disconnected (Using Cache) ⚠️'}`);
+    console.log(`🔐 Admin Login: thedigamber / 6203`);
+    console.log(`💳 UPI ID: thedigamber@fam`);
+    console.log(`📁 Public folder: ${path.join(__dirname, 'public')}`);
 });
