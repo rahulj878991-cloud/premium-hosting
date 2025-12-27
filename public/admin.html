@@ -1,1 +1,554 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - Premium Hosting</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="logo">
+                <i class="fas fa-crown"></i>
+                <span>Admin Panel</span>
+            </div>
+            <div class="nav-links">
+                <a href="/admin.html"><i class="fas fa-tachometer-alt"></i> Dashboard</a>
+                <a href="#users"><i class="fas fa-users"></i> Users</a>
+                <a href="#payments"><i class="fas fa-rupee-sign"></i> Payments</a>
+                <a href="#files"><i class="fas fa-file"></i> Files</a>
+                <button id="logoutBtn" class="btn-login"><i class="fas fa-sign-out-alt"></i> Logout</button>
+            </div>
+        </div>
+    </nav>
 
+    <div class="dashboard-container">
+        <div class="dashboard-header">
+            <h1><i class="fas fa-user-shield"></i> Admin Dashboard</h1>
+            <p>Welcome, <strong id="adminName">thedigamber</strong></p>
+        </div>
+
+        <!-- Stats Cards -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-value" id="totalUsers">0</div>
+                <div class="stat-label">Total Users</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="totalPayments">0</div>
+                <div class="stat-label">Total Payments</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">₹<span id="totalRevenue">0</span></div>
+                <div class="stat-label">Total Revenue</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="activePlans">0</div>
+                <div class="stat-label">Active Plans</div>
+            </div>
+        </div>
+
+        <!-- Tabs -->
+        <div class="tabs">
+            <button class="tab-btn active" data-tab="usersTab">Users Management</button>
+            <button class="tab-btn" data-tab="paymentsTab">Payments</button>
+            <button class="tab-btn" data-tab="filesTab">Files</button>
+            <button class="tab-btn" data-tab="settingsTab">Settings</button>
+        </div>
+
+        <!-- Users Tab -->
+        <div id="usersTab" class="tab-content active">
+            <h2><i class="fas fa-users"></i> Users Management</h2>
+            <div class="search-box">
+                <input type="text" id="searchUser" placeholder="Search users by username or email...">
+                <button onclick="searchUsers()"><i class="fas fa-search"></i> Search</button>
+            </div>
+            <div class="table-container">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Username</th>
+                            <th>Email</th>
+                            <th>Plan</th>
+                            <th>Storage Used</th>
+                            <th>Joined Date</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="usersTableBody">
+                        <!-- Users will be loaded here -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Payments Tab -->
+        <div id="paymentsTab" class="tab-content">
+            <h2><i class="fas fa-rupee-sign"></i> Payment History</h2>
+            <div class="table-container">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Payment ID</th>
+                            <th>User</th>
+                            <th>Plan</th>
+                            <th>Amount</th>
+                            <th>Status</th>
+                            <th>Date</th>
+                            <th>Transaction ID</th>
+                        </tr>
+                    </thead>
+                    <tbody id="paymentsTableBody">
+                        <!-- Payments will be loaded here -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Files Tab -->
+        <div id="filesTab" class="tab-content">
+            <h2><i class="fas fa-file"></i> Uploaded Files</h2>
+            <div class="table-container">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Filename</th>
+                            <th>User</th>
+                            <th>Size</th>
+                            <th>Type</th>
+                            <th>Upload Date</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="filesTableBody">
+                        <!-- Files will be loaded here -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Settings Tab -->
+        <div id="settingsTab" class="tab-content">
+            <h2><i class="fas fa-cog"></i> Admin Settings</h2>
+            <div class="settings-form">
+                <div class="form-group">
+                    <label><i class="fas fa-key"></i> Change Admin Password</label>
+                    <input type="password" id="newPassword" placeholder="New Password">
+                    <input type="password" id="confirmPassword" placeholder="Confirm Password">
+                    <button onclick="changePassword()" class="btn-primary">Update Password</button>
+                </div>
+                
+                <div class="form-group">
+                    <label><i class="fas fa-qrcode"></i> UPI Settings</label>
+                    <input type="text" id="upiId" value="thedigamber@fam" placeholder="UPI ID">
+                    <button onclick="updateUPI()" class="btn-primary">Update UPI</button>
+                </div>
+                
+                <div class="form-group">
+                    <label><i class="fas fa-server"></i> Plan Pricing</label>
+                    <div class="plan-settings">
+                        <div>
+                            <label>Basic Plan (₹)</label>
+                            <input type="number" id="basicPrice" value="99" min="1">
+                        </div>
+                        <div>
+                            <label>Premium Plan (₹)</label>
+                            <input type="number" id="premiumPrice" value="999" min="1">
+                        </div>
+                        <button onclick="updatePricing()" class="btn-primary">Update Prices</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- User Edit Modal -->
+    <div id="editUserModal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal">&times;</span>
+            <h2>Edit User</h2>
+            <form id="editUserForm">
+                <input type="hidden" id="editUserId">
+                <div class="form-group">
+                    <label>Username</label>
+                    <input type="text" id="editUsername" required>
+                </div>
+                <div class="form-group">
+                    <label>Email</label>
+                    <input type="email" id="editEmail" required>
+                </div>
+                <div class="form-group">
+                    <label>Plan</label>
+                    <select id="editPlan">
+                        <option value="free">Free (100MB)</option>
+                        <option value="basic">Basic (1GB)</option>
+                        <option value="premium">Premium (10GB)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Storage Limit (MB)</label>
+                    <input type="number" id="editStorageLimit" min="100" max="10240">
+                </div>
+                <button type="submit" class="btn-primary">Save Changes</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Admin Dashboard JavaScript
+        document.addEventListener('DOMContentLoaded', function() {
+            checkAdminAuth();
+            loadDashboardStats();
+            loadUsers();
+            loadPayments();
+            setupTabs();
+            
+            // Logout button
+            document.getElementById('logoutBtn').addEventListener('click', function() {
+                fetch('/api/logout')
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            window.location.href = '/login.html';
+                        }
+                    });
+            });
+        });
+
+        async function checkAdminAuth() {
+            try {
+                const response = await fetch('/api/user');
+                const data = await response.json();
+                
+                if (!data.success || data.user.username !== 'thedigamber') {
+                    window.location.href = '/login.html';
+                }
+            } catch (error) {
+                window.location.href = '/login.html';
+            }
+        }
+
+        async function loadDashboardStats() {
+            try {
+                const response = await fetch('/api/admin/stats');
+                const data = await response.json();
+                
+                if (data.success) {
+                    document.getElementById('totalUsers').textContent = data.stats.totalUsers;
+                    document.getElementById('totalPayments').textContent = data.stats.totalPayments;
+                    document.getElementById('totalRevenue').textContent = data.stats.totalRevenue;
+                    
+                    // Calculate active plans
+                    const activePlans = data.recentUsers.filter(user => 
+                        user.plan !== 'free' && 
+                        new Date(user.planExpiry) > new Date()
+                    ).length;
+                    document.getElementById('activePlans').textContent = activePlans;
+                }
+            } catch (error) {
+                console.error('Error loading stats:', error);
+            }
+        }
+
+        async function loadUsers() {
+            try {
+                const response = await fetch('/api/admin/users');
+                const data = await response.json();
+                
+                if (data.success) {
+                    const tbody = document.getElementById('usersTableBody');
+                    tbody.innerHTML = '';
+                    
+                    data.users.forEach(user => {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td>${user.username}</td>
+                            <td>${user.email}</td>
+                            <td><span class="plan-badge ${user.plan}">${user.plan}</span></td>
+                            <td>${(user.storageUsed || 0).toFixed(2)} MB / ${user.storageLimit} MB</td>
+                            <td>${new Date(user.accountCreated).toLocaleDateString()}</td>
+                            <td>
+                                <button onclick="editUser('${user._id}')" class="btn-small"><i class="fas fa-edit"></i></button>
+                                <button onclick="deleteUser('${user._id}')" class="btn-small btn-danger"><i class="fas fa-trash"></i></button>
+                            </td>
+                        `;
+                        tbody.appendChild(row);
+                    });
+                }
+            } catch (error) {
+                console.error('Error loading users:', error);
+            }
+        }
+
+        async function loadPayments() {
+            try {
+                const response = await fetch('/api/admin/stats');
+                const data = await response.json();
+                
+                if (data.success && data.recentPayments) {
+                    const tbody = document.getElementById('paymentsTableBody');
+                    tbody.innerHTML = '';
+                    
+                    data.recentPayments.forEach(payment => {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td>${payment._id.substring(0, 8)}...</td>
+                            <td>${payment.userId?.username || 'N/A'}</td>
+                            <td>${payment.plan}</td>
+                            <td>₹${payment.amount}</td>
+                            <td><span class="status-badge ${payment.status}">${payment.status}</span></td>
+                            <td>${new Date(payment.paymentDate).toLocaleDateString()}</td>
+                            <td>${payment.transactionId || 'Pending'}</td>
+                        `;
+                        tbody.appendChild(row);
+                    });
+                }
+            } catch (error) {
+                console.error('Error loading payments:', error);
+            }
+        }
+
+        function setupTabs() {
+            const tabBtns = document.querySelectorAll('.tab-btn');
+            const tabContents = document.querySelectorAll('.tab-content');
+            
+            tabBtns.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    // Remove active class from all buttons and contents
+                    tabBtns.forEach(b => b.classList.remove('active'));
+                    tabContents.forEach(c => c.classList.remove('active'));
+                    
+                    // Add active class to clicked button
+                    btn.classList.add('active');
+                    
+                    // Show corresponding content
+                    const tabId = btn.getAttribute('data-tab');
+                    document.getElementById(tabId).classList.add('active');
+                });
+            });
+        }
+
+        function editUser(userId) {
+            // Open modal with user data
+            const modal = document.getElementById('editUserModal');
+            modal.style.display = 'block';
+            
+            // TODO: Fetch user details and populate form
+        }
+
+        function searchUsers() {
+            const searchTerm = document.getElementById('searchUser').value.toLowerCase();
+            const rows = document.querySelectorAll('#usersTableBody tr');
+            
+            rows.forEach(row => {
+                const text = row.textContent.toLowerCase();
+                row.style.display = text.includes(searchTerm) ? '' : 'none';
+            });
+        }
+
+        // Modal close functionality
+        document.querySelector('.close-modal').addEventListener('click', function() {
+            document.getElementById('editUserModal').style.display = 'none';
+        });
+
+        // Close modal when clicking outside
+        window.addEventListener('click', function(event) {
+            const modal = document.getElementById('editUserModal');
+            if (event.target === modal) {
+                modal.style.display = 'none';
+            }
+        });
+    </script>
+
+    <style>
+        /* Additional Admin Styles */
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin: 2rem 0;
+            border-bottom: 2px solid #e2e8f0;
+            padding-bottom: 10px;
+        }
+        
+        .tab-btn {
+            padding: 10px 20px;
+            background: none;
+            border: none;
+            border-bottom: 3px solid transparent;
+            cursor: pointer;
+            font-size: 1rem;
+            color: #4a5568;
+        }
+        
+        .tab-btn.active {
+            border-bottom-color: #667eea;
+            color: #667eea;
+            font-weight: bold;
+        }
+        
+        .tab-content {
+            display: none;
+            padding: 20px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        .table-container {
+            overflow-x: auto;
+            margin-top: 20px;
+        }
+        
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .data-table th, .data-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        
+        .data-table th {
+            background: #f7fafc;
+            font-weight: 600;
+            color: #4a5568;
+        }
+        
+        .data-table tr:hover {
+            background: #f7fafc;
+        }
+        
+        .plan-badge {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+        
+        .plan-badge.free {
+            background: #e2e8f0;
+            color: #4a5568;
+        }
+        
+        .plan-badge.basic {
+            background: #bee3f8;
+            color: #2c5282;
+        }
+        
+        .plan-badge.premium {
+            background: #f6e05e;
+            color: #744210;
+        }
+        
+        .status-badge {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+        
+        .status-badge.completed {
+            background: #c6f6d5;
+            color: #22543d;
+        }
+        
+        .status-badge.pending {
+            background: #fed7d7;
+            color: #742a2a;
+        }
+        
+        .btn-small {
+            padding: 5px 10px;
+            margin: 0 2px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+        
+        .btn-danger {
+            background: #fc8181;
+            color: white;
+        }
+        
+        .search-box {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .search-box input {
+            flex: 1;
+            padding: 10px;
+            border: 2px solid #e2e8f0;
+            border-radius: 5px;
+        }
+        
+        .search-box button {
+            padding: 10px 20px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1001;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+        }
+        
+        .modal-content {
+            background: white;
+            margin: 5% auto;
+            padding: 30px;
+            border-radius: 10px;
+            width: 90%;
+            max-width: 500px;
+            position: relative;
+        }
+        
+        .close-modal {
+            position: absolute;
+            right: 20px;
+            top: 15px;
+            font-size: 24px;
+            cursor: pointer;
+            color: #718096;
+        }
+        
+        .settings-form {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        
+        .plan-settings {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-top: 10px;
+        }
+        
+        .plan-settings div {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+    </style>
+</body>
+              </html>
